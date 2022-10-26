@@ -54,7 +54,16 @@ Resources:
       SubnetId: !Ref SubnetId
       UserData:
           Fn::Base64: !Sub |
-             aws s3 cp s3://aws-s3bucket-mys3bucket-10oeu05s3hy2q/example.txt /home/ec2-user/example.txt
+             aws s3 cp s3://aws-s3bucket-mys3bucket-10oeu05s3hy2q/example.sh /home/ec2-user/example.sh
+             #!/bin/bash -xe
+             chmod u+x example.sh
+             ./example.sh
       Tags:
         - Key: Name
           Value: !Sub "${Name}-EC2Instance"
+  AWSTemplateFormatVersion: "2010-09-09"          
+          
+          
+          
+          
+          
