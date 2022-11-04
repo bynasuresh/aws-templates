@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Deploy a Lambda custom resource for Cloudformation to search for and return VPC
+Description: Deploy a Lambda custom resource for Cloudformation to search for and return VPC ID
 Parameters:
   ParamS3Bucket:
     Description: The S3 Bucket that holds the lambda code
@@ -22,25 +22,38 @@ Resources:
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: CloudFormationRead
+        - PolicyName: root
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
-                  - cloudformation:DescribeStacks
-                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:*"
-        - PolicyName: AllowLambdaToWriteLogs
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
+                  - 'ec2:Describe*'
+                Resource: '*'
               - Effect: Allow
-                Action:
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*"
-              - Sid: AllowLambdaToCreateLogGroups
-                Effect: Allow
                 Action:
                   - 'logs:CreateLogGroup'
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref ParamS3Bucket
+        S3Key: !Ref ParamS3Key
+      Description: 'Custom CloudFormation resoiurce to return the latest VPC with given search parameters'
+      FunctionName: !Sub "VPC-Search-${AWS::StackName}"
+      Handler: 'lambda_function.lambda_handler'
+      MemorySize: 128
+      Role:
+        Fn::GetAtt: LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 60
+  Lambdatrigger:
+    Type: 'Custom::VPCLambda'
+    Properties:
+      ServiceToken: !GetAtt LambdaFunction.Arn  
+Outputs:
+  RouteTableID:
+    Value: !GetAtt Lambdatrigger.VPCID
